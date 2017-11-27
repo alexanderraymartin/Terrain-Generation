@@ -13,6 +13,8 @@
 #include <glm/gtc/type_ptr.hpp>
 #include <glm/gtc/matrix_transform.hpp>
 
+#include "Terrain.h"
+
 using namespace std;
 using namespace glm;
 
@@ -31,17 +33,17 @@ public:
 
 	WindowManager * windowManager = nullptr;
 
+	Terrain * terrain = nullptr;
+
 	// Our shader programs
 	// Phong
 	std::shared_ptr<Program> prog;
 	std::shared_ptr<Program> groundProg;
-	std::shared_ptr<Program> mirrorProg;
 
 	// shader counter for toggle
 	int currentShader = 0;
 
 	// Shape to be used (from obj file)
-	shared_ptr<Shape> bunny;
 	shared_ptr<Shape> sphere;
 
 	// Contains vertex information for OpenGL
@@ -50,17 +52,12 @@ public:
 	// Data necessary to give our triangle to OpenGL
 	GLuint VertexBufferID;
 
-	//geometry for texture render
-	GLuint quad_VertexArrayID;
-	GLuint quad_vertexbuffer;
-
 	//reference to texture FBO
 	GLuint frameBuf[2];
 	GLuint texBuf[2];
 	GLuint depthBuf;
 
 	bool FirstTime = true;
-	bool Moving = false;
 	bool mouseDown = false;
 
 	GLuint IndexBufferID;
@@ -68,7 +65,6 @@ public:
 	vec3 cameraPosition = { 0.0f, 0.0f, 0.0f };
 	vec3 cameraOffset = { 0.0f, 0.0f, 0.0f };
 	vec3 lookAtPosition = { 0.0f, 0.0f, 0.0f };
-	vec3 mirrorPosition = { 5.0, 1.0, 3.0 };
 
 	float object_x_rotation = 0.0f;
 	float object_y_rotation = 0.0f;
@@ -83,7 +79,7 @@ public:
 
 	float oldX = 0.0f;
 	float oldY = 0.0f;
-	float speed = 0.2f;
+	float speed = 1.0f;
 	//////////////////////////////////////////////////////////////////////////
 
 	void keyCallback(GLFWwindow *window, int key, int scancode, int action, int mods)
@@ -142,12 +138,10 @@ public:
 			mouseDown = true;
 			glfwGetCursorPos(window, &posX, &posY);
 			cout << "Pos X " << posX << " Pos Y " << posY << endl;
-			Moving = true;
 		}
 
 		if (action == GLFW_RELEASE)
 		{
-			Moving = false;
 			mouseDown = false;
 		}
 	}
@@ -329,14 +323,14 @@ public:
 		groundProg->addUniform("P");
 		groundProg->addUniform("MV");
 		groundProg->addUniform("view");
+		groundProg->addUniform("light_x_position");
 			
 		groundProg->addAttribute("vertPos");
 		//////////////////////////////////////////////////////////////////////////
 		glfwSetInputMode(windowManager->getHandle(), GLFW_CURSOR, GLFW_CURSOR_DISABLED);
 
-		//create two frame buffer objects to toggle between
-		glGenFramebuffers(2, frameBuf);
-		glGenTextures(2, texBuf);
+		glGenFramebuffers(1, frameBuf);
+		glGenTextures(1, texBuf);
 		glGenRenderbuffers(1, &depthBuf);
 		createFBO(frameBuf[0], texBuf[0]);
 
@@ -344,62 +338,14 @@ public:
 		glBindRenderbuffer(GL_RENDERBUFFER, depthBuf);
 		glRenderbufferStorage(GL_RENDERBUFFER, GL_DEPTH_COMPONENT, width, height);
 		glFramebufferRenderbuffer(GL_FRAMEBUFFER, GL_DEPTH_ATTACHMENT, GL_RENDERBUFFER, depthBuf);
-
-		//more FBO set up
-		GLenum DrawBuffers[1] = { GL_COLOR_ATTACHMENT0 };
-		glDrawBuffers(1, DrawBuffers);
-
-		//create another FBO so we can swap back and forth
-		createFBO(frameBuf[1], texBuf[1]);
-
-		/////////////////////////////////////////////////////////////
-		// Mirror
-		mirrorProg = make_shared<Program>();
-		mirrorProg->setVerbose(true);
-		mirrorProg->setShaderNames(resourceDirectory + "/mirror_vert.glsl", resourceDirectory + "/mirror_frag.glsl");
-		if (!mirrorProg->init())
-		{
-			std::cerr << "One or more shaders failed to compile... exiting!" << std::endl;
-			exit(1);
-		}
-		mirrorProg->init();
-		mirrorProg->addUniform("P");
-		mirrorProg->addUniform("MV");
-		mirrorProg->addUniform("view");
-
-		mirrorProg->addAttribute("vertPos");
 	}
 
-	void initGeom(const std::string& resourceDirectory)
-	{
-		// Initialize mesh.
-		bunny = make_shared<Shape>();
-		bunny->loadMesh(resourceDirectory + "/bunny.obj");
-		bunny->resize();
-		bunny->init();
-		initQuad();
-	}
 
-	/**** geometry set up for a quad *****/
+	/**** geometry set up for terrain quad *****/
 	void initQuad()
 	{
-		//now set up a simple quad for rendering FBO
-		glGenVertexArrays(1, &quad_VertexArrayID);
-		glBindVertexArray(quad_VertexArrayID);
-
-		static const GLfloat g_quad_vertex_buffer_data[] =
-		{
-			-1.0f, -1.0f, 0.0f,
-			 1.0f, -1.0f, 0.0f,
-			-1.0f,  1.0f, 0.0f,
-			-1.0f,  1.0f, 0.0f,
-			 1.0f, -1.0f, 0.0f,
-			 1.0f,  1.0f, 0.0f,
-		};
-
-		glGenBuffers(1, &quad_vertexbuffer);
-		glBindBuffer(GL_ARRAY_BUFFER, quad_vertexbuffer);
-		glBufferData(GL_ARRAY_BUFFER, sizeof(g_quad_vertex_buffer_data), g_quad_vertex_buffer_data, GL_STATIC_DRAW);
+		terrain = new Terrain(500);
+		terrain->generateTerrain();
 	}
 
 	/* Helper function to create the framebuffer object and
@@ -428,26 +374,6 @@ public:
 			cout << "Error setting up frame buffer - exiting" << endl;
 			exit(0);
 		}
-	}
-
-	// To complete image processing on the specificed texture
-	// Right now just draws large quad to the screen that is texture mapped
-	// with the prior scene image - next lab we will process
-	void ProcessImage(GLuint inTex)
-	{
-		glActiveTexture(GL_TEXTURE0);
-		glBindTexture(GL_TEXTURE_2D, inTex);
-
-		// example applying of 'drawing' the FBO texture - change shaders
-		mirrorProg->bind();
-		glUniform1i(mirrorProg->getUniform("texBuf"), 0);
-		glUniform2f(mirrorProg->getUniform("dir"), -1, 0);
-		glEnableVertexAttribArray(0);
-		glBindBuffer(GL_ARRAY_BUFFER, quad_vertexbuffer);
-		glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 0, (void *)0);
-		glDrawArrays(GL_TRIANGLES, 0, 6);
-		glDisableVertexAttribArray(0);
-		mirrorProg->unbind();
 	}
 
 	void setMaterial(int i) {
@@ -547,50 +473,17 @@ public:
 		lookAtPosition = vec3(lookX, lookY, lookZ) + cameraOffset;
 	}
 
-	void drawMirror()
-	{
-		auto MV = std::make_shared<MatrixStack>();
-		glBindVertexArray(quad_VertexArrayID);
-		MV->pushMatrix();
-			MV->translate(mirrorPosition);
-			MV->scale(vec3(3.0, 2.0, 1.0));
-			
-			glUniformMatrix4fv(mirrorProg->getUniform("MV"), 1, GL_FALSE, value_ptr(MV->topMatrix()));
-			glEnableVertexAttribArray(0);
-			glBindBuffer(GL_ARRAY_BUFFER, quad_vertexbuffer);
-			glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 0, (void *)0);
-			glDrawArrays(GL_TRIANGLES, 0, 6);
-			glDisableVertexAttribArray(0);
-		MV->popMatrix();
-	}
-
 	void drawGround()
 	{
 		auto MV = std::make_shared<MatrixStack>();
-		glBindVertexArray(quad_VertexArrayID);
+		glBindVertexArray(terrain->quad_VertexArrayID);
 		MV->pushMatrix();
 			MV->translate(vec3(0, -1.0, 0));
 			MV->rotate(radians(90.0f), vec3(1, 0, 0));
 			MV->scale(30.0f);
 			
 			glUniformMatrix4fv(groundProg->getUniform("MV"), 1, GL_FALSE, value_ptr(MV->topMatrix()));
-			glEnableVertexAttribArray(0);
-			glBindBuffer(GL_ARRAY_BUFFER, quad_vertexbuffer);
-			glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 0, (void *)0);
-			glDrawArrays(GL_TRIANGLES, 0, 6);
-			glDisableVertexAttribArray(0);
-		MV->popMatrix();
-	}
-
-	void drawBunny(float x, float y, float z, int color)
-	{
-		auto MV = std::make_shared<MatrixStack>();
-		MV->pushMatrix();
-			MV->translate(vec3(x, y, z));
-			MV->rotate(3.14f, vec3(0, 1, 0));
-			setMaterial(color % 4);
-			glUniformMatrix4fv(prog->getUniform("MV"), 1, GL_FALSE, value_ptr(MV->topMatrix()));
-			bunny->draw(prog);
+			glDrawElements(GL_TRIANGLES, NUM_OF_TRIANGLES * NUM_OF_LEVELS * 6, GL_UNSIGNED_INT, nullptr);
 		MV->popMatrix();
 	}
 
@@ -723,15 +616,7 @@ public:
 		float aspect = width / (float)height;
 		glViewport(0, 0, width, height);
 
-		if (Moving)
-		{
-			//set up to render to buffer
-			glBindFramebuffer(GL_FRAMEBUFFER, frameBuf[0]);
-		}
-		else
-		{
-			glBindFramebuffer(GL_FRAMEBUFFER, 0);
-		}
+		glBindFramebuffer(GL_FRAMEBUFFER, 0);
 
 		// Clear framebuffer.
 		glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
@@ -749,12 +634,8 @@ public:
 		groundProg->bind();
 		glUniformMatrix4fv(groundProg->getUniform("P"), 1, GL_FALSE, glm::value_ptr(P->topMatrix()));
 		glUniformMatrix4fv(groundProg->getUniform("view"), 1, GL_FALSE, value_ptr(view));
+		glUniform1f(groundProg->getUniform("light_x_position"), light_x_position);
 		drawGround();
-
-		mirrorProg->bind();
-		glUniformMatrix4fv(mirrorProg->getUniform("P"), 1, GL_FALSE, glm::value_ptr(P->topMatrix()));
-		glUniformMatrix4fv(mirrorProg->getUniform("view"), 1, GL_FALSE, value_ptr(view));
-		drawMirror();
 
 		prog->bind();
 		glUniformMatrix4fv(prog->getUniform("P"), 1, GL_FALSE, glm::value_ptr(P->topMatrix()));
@@ -763,17 +644,6 @@ public:
 		// globl transforms for 'camera'
 		glUniformMatrix4fv(prog->getUniform("view"), 1, GL_FALSE, value_ptr(view));
 
-		//////////////////////////////////////////////////////////////////////////
-		drawBunny(0, 0, -10, 0);
-		drawBunny(2, 0, 5, 1);
-		drawBunny(-5, 0, 5, 2);
-		drawBunny(-15, 0, -5, 3);
-		drawBunny(-15, 0, 10, 4);
-		drawBunny(7, 0, -10, 5);
-		drawBunny(10, 0, -10, 6);
-		drawBunny(10, 0, 10, 7);
-		drawBunny(-5, 0, 10, 8);
-		drawBunny(-5, 0, 10, 9);
 		//////////////////////////////////////////////////////////////////////////
 		drawSnowman(5, 0, -8, 0);
 		drawSnowman(9, 0, 6, 1);
@@ -785,23 +655,6 @@ public:
 		drawSnowman(10, 0, -4, 7);
 		drawSnowman(-1, 0, 5, 8);
 		drawSnowman(-16, 0, 5, 9);
-		//////////////////////////////////////////////////////////////////////////
-		if (Moving)
-		{
-			for (int i = 0; i < 3; i++)
-			{
-				//set up framebuffer
-				glBindFramebuffer(GL_FRAMEBUFFER, frameBuf[(i + 1) % 2]);
-				glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
-				//set up texture
-				ProcessImage(texBuf[i % 2]);
-			}
-
-			/* now draw the actual output */
-			glBindFramebuffer(GL_FRAMEBUFFER, 0);
-			glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
-			ProcessImage(texBuf[1]);
-		}
 	}
 };
 
@@ -829,7 +682,7 @@ int main(int argc, char **argv)
 	// may need to initialize or set up different data and state
 
 	application->init(resourceDir);
-	application->initGeom(resourceDir);
+	application->initQuad();
 	application->initSnowman(resourceDir);
 
 	// Loop until the user closes the window.
