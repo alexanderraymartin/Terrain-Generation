@@ -79,7 +79,7 @@ public:
 
 	float oldX = 0.0f;
 	float oldY = 0.0f;
-	float speed = 1.0f;
+	float speed = 0.2f;
 	//////////////////////////////////////////////////////////////////////////
 
 	void keyCallback(GLFWwindow *window, int key, int scancode, int action, int mods)
@@ -338,13 +338,15 @@ public:
 		glBindRenderbuffer(GL_RENDERBUFFER, depthBuf);
 		glRenderbufferStorage(GL_RENDERBUFFER, GL_DEPTH_COMPONENT, width, height);
 		glFramebufferRenderbuffer(GL_FRAMEBUFFER, GL_DEPTH_ATTACHMENT, GL_RENDERBUFFER, depthBuf);
+
+		glPolygonMode(GL_FRONT_AND_BACK, GL_LINE);
 	}
 
 
 	/**** geometry set up for terrain quad *****/
 	void initQuad()
 	{
-		terrain = new Terrain(500);
+		terrain = new Terrain(100);
 		terrain->generateTerrain();
 	}
 
@@ -479,11 +481,8 @@ public:
 		glBindVertexArray(terrain->quad_VertexArrayID);
 		MV->pushMatrix();
 			MV->translate(vec3(0, -1.0, 0));
-			MV->rotate(radians(90.0f), vec3(1, 0, 0));
-			MV->scale(30.0f);
-			
 			glUniformMatrix4fv(groundProg->getUniform("MV"), 1, GL_FALSE, value_ptr(MV->topMatrix()));
-			glDrawElements(GL_TRIANGLES, NUM_OF_TRIANGLES * NUM_OF_LEVELS * 6, GL_UNSIGNED_INT, nullptr);
+			glDrawElements(GL_TRIANGLES, terrain->NUM_VERT * terrain->NUM_VERT * 6, GL_UNSIGNED_INT, nullptr);
 		MV->popMatrix();
 	}
 

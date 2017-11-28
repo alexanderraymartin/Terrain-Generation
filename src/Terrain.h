@@ -19,8 +19,8 @@ class Terrain
 		void createVBO(GLfloat* array);
 		void createIBO(GLuint* array);
 
-		int width;
-		int length;
+		const static int NUM_VERT = 50;
+		int size;
 		float** heights;
 		glm::vec3** normals;
 		bool needNormals;

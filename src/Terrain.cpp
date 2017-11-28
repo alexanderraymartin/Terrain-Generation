@@ -7,20 +7,19 @@ using namespace glm;
 
 Terrain::Terrain(int _size)
 {
-	width = _size;
-	length = _size;
+	size = _size;
 
-	heights = new float*[length];
+	heights = new float*[size];
 
-	for (int i = 0; i < length; i++)
+	for (int i = 0; i < size; i++)
 	{
-		heights[i] = new float[width];
+		heights[i] = new float[size];
 	}
-	normals = new vec3*[length];
+	normals = new vec3*[size];
 
-	for (int i = 0; i < length; i++)
+	for (int i = 0; i < size; i++)
 	{
-		normals[i] = new vec3[width];
+		normals[i] = new vec3[size];
 	}
 
 	needNormals = true;
@@ -28,13 +27,13 @@ Terrain::Terrain(int _size)
 
 Terrain::~Terrain()
 {
-	for (int i = 0; i < length; i++)
+	for (int i = 0; i < size; i++)
 	{
 		delete[] heights[i];
 	}
 	delete[] heights;
 
-	for (int i = 0; i < length; i++)
+	for (int i = 0; i < size; i++)
 	{
 		delete[] normals[i];
 	}
@@ -69,8 +68,6 @@ glm::vec3 Terrain::getNormal(int x, int z)
 
 void Terrain::generateTerrain()
 {
-	const int NUM_OF_TRIANGLES = 50;
-	const int NUM_OF_LEVELS = 5;
 	//generate the VAO
 	glGenVertexArrays(1, &quad_VertexArrayID);
 	glBindVertexArray(quad_VertexArrayID);
@@ -81,10 +78,10 @@ void Terrain::generateTerrain()
 	//set the current state to focus on our vertex buffer
 	glBindBuffer(GL_ARRAY_BUFFER, quad_VertexBufferID);
 
-	GLfloat g_quad_vertex_buffer_data[(NUM_OF_TRIANGLES * NUM_OF_LEVELS) * 3];
+	GLfloat g_quad_vertex_buffer_data[(NUM_VERT * NUM_VERT) * 3];
 	createVBO(g_quad_vertex_buffer_data);
 
-	GLuint g_quad_index_buffer_data[NUM_OF_TRIANGLES * NUM_OF_LEVELS * 2 * 3];
+	GLuint g_quad_index_buffer_data[(NUM_VERT - 1) * (NUM_VERT - 1) * 2 * 3];
 	createIBO(g_quad_index_buffer_data);
 
 	//actually memcopy the data - only do this once
@@ -106,84 +103,41 @@ void Terrain::generateTerrain()
 
 void Terrain::createVBO(GLfloat * array)
 {
-	const int NUM_OF_TRIANGLES = 50;
-	const int NUM_OF_LEVELS = 5;
+	// new point
+	float newX = 0.0f;
+	float newZ = 0.0f;
 
-	// top of circle
-	float newX;
-	float newZ;
-	// center of circle
-	float centerX = 0.0f;
-	float centerZ = 0.0f;
+	for (int y = 0; y < NUM_VERT; y++) {
+		for (int x = 0; x < NUM_VERT; x++) {
+			array[3 * x + NUM_VERT * y * 3] = newX; // x coordinate
+			array[3 * x + 1 + NUM_VERT * y * 3] = 0; // y coordinate
+			array[3 * x + 2 + NUM_VERT * y * 3] = newZ; // z coordinate
 
-	// angle to rotate
-	float angle = glm::radians(360.0 / NUM_OF_TRIANGLES);
-
-	for (int y = 0; y < NUM_OF_LEVELS; y++) {
-		newX = 0.0f;
-		newZ = 0.5f;
-		for (int i = 0; i < NUM_OF_TRIANGLES; i++) {
-			array[3 * i + NUM_OF_TRIANGLES * y * 3] = newX; // x
-			array[3 * i + 1 + NUM_OF_TRIANGLES * y * 3] = y / float(NUM_OF_LEVELS); // y
-			array[3 * i + 2 + NUM_OF_TRIANGLES * y * 3] = newZ; // z
-
-			float x1 = newX - centerX;
-			float z1 = newZ - centerZ;
-
-			// rotate point
-			float x2 = x1 * cos(angle) - z1 * sin(angle);
-			float z2 = x1 * sin(angle) + z1 * cos(angle);
-
-			newX = x2 + centerX;
-			newZ = z2 + centerZ;
+			newX += size / (float)NUM_VERT;
 		}
+		newX = 0.0f;
+		newZ += size / (float)NUM_VERT;
 	}
 }
 
 void Terrain::createIBO(GLuint * array)
 {
-	const int NUM_OF_TRIANGLES = 50;
-	const int NUM_OF_LEVELS = 5;
-	for (int j = 0; j < NUM_OF_LEVELS; j++)
+	for (int y = 0; y < NUM_VERT - 1; y++)
 	{
-		// last level
-		if (j == NUM_OF_LEVELS - 1) {
-			return;
-		}
-
-		for (int i = 0; i < NUM_OF_TRIANGLES; i++)
+		for (int x = 0; x < NUM_VERT - 1; x++)
 		{
-			// last index in each level
-			if (i == NUM_OF_TRIANGLES - 1) {
-				// Triangles Up
-				// i, i + 1, i + NUM_OF_TRIANGLES + 1
-				int index = (i + j * NUM_OF_TRIANGLES) * 6;
-				int k = i + (j * NUM_OF_TRIANGLES);
-				array[index] = k;
-				array[index + 1] = k + 1 - NUM_OF_TRIANGLES;
-				array[index + 2] = k + 1;
+			// Triangles Down
+			int index = (x + y * (NUM_VERT - 1)) * 6;
+			int k = x + (y * NUM_VERT);
 
-				// Triangles Down
-				// i, i + NUM_OF_TRIANGLES, i + NUM_OF_TRIANGLES + 1
-				array[index + 3] = k;
-				array[index + 4] = k + NUM_OF_TRIANGLES;
-				array[index + 5] = k + 1;
-				break;
-			}
+			array[index + 0] = k;
+			array[index + 1] = k + 1;
+			array[index + 2] = k + NUM_VERT;
 
 			// Triangles Up
-			// i, i + 1, i + NUM_OF_TRIANGLES + 1
-			int index = (i + j * NUM_OF_TRIANGLES) * 6;
-			int k = i + (j * NUM_OF_TRIANGLES);
-			array[index] = k;
-			array[index + 1] = k + 1;
-			array[index + 2] = k + NUM_OF_TRIANGLES + 1;
-
-			// Triangles Down
-			// i, i + NUM_OF_TRIANGLES, i + NUM_OF_TRIANGLES + 1
-			array[index + 3] = k;
-			array[index + 4] = k + NUM_OF_TRIANGLES;
-			array[index + 5] = k + NUM_OF_TRIANGLES + 1;
+			array[index + 3] = k + 1;
+			array[index + 4] = k + NUM_VERT;
+			array[index + 5] = k + NUM_VERT + 1;
 		}
 	}
 }
