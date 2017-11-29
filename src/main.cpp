@@ -6,6 +6,7 @@
 #include "Shape.h"
 #include "WindowManager.h"
 #include "MatrixStack.h"
+#include "GLTextureWriter.h"
 
 // used for helper in perspective
 #include "glm/glm.hpp"
@@ -324,7 +325,7 @@ public:
 		groundProg->addUniform("MV");
 		groundProg->addUniform("view");
 		groundProg->addUniform("light_x_position");
-			
+		groundProg->addUniform("Texture0");
 		groundProg->addAttribute("vertPos");
 		//////////////////////////////////////////////////////////////////////////
 		glfwSetInputMode(windowManager->getHandle(), GLFW_CURSOR, GLFW_CURSOR_DISABLED);
@@ -339,7 +340,7 @@ public:
 		glRenderbufferStorage(GL_RENDERBUFFER, GL_DEPTH_COMPONENT, width, height);
 		glFramebufferRenderbuffer(GL_FRAMEBUFFER, GL_DEPTH_ATTACHMENT, GL_RENDERBUFFER, depthBuf);
 
-		glPolygonMode(GL_FRONT_AND_BACK, GL_LINE);
+		//glPolygonMode(GL_FRONT_AND_BACK, GL_LINE);
 	}
 
 

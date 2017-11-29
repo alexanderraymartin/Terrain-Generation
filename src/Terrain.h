@@ -18,6 +18,7 @@ class Terrain
 		void generateTerrain();
 		void createVBO(GLfloat* array);
 		void createIBO(GLuint* array);
+		float Terrain::randFloat(float l, float h);
 
 		const static int NUM_VERT = 50;
 		int size;

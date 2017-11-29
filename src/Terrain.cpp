@@ -9,17 +9,17 @@ Terrain::Terrain(int _size)
 {
 	size = _size;
 
-	heights = new float*[size];
+	heights = new float*[NUM_VERT];
 
-	for (int i = 0; i < size; i++)
+	for (int i = 0; i < NUM_VERT; i++)
 	{
-		heights[i] = new float[size];
+		heights[i] = new float[NUM_VERT];
 	}
-	normals = new vec3*[size];
+	normals = new vec3*[NUM_VERT];
 
-	for (int i = 0; i < size; i++)
+	for (int i = 0; i < NUM_VERT; i++)
 	{
-		normals[i] = new vec3[size];
+		normals[i] = new vec3[NUM_VERT];
 	}
 
 	needNormals = true;
@@ -27,13 +27,13 @@ Terrain::Terrain(int _size)
 
 Terrain::~Terrain()
 {
-	for (int i = 0; i < size; i++)
+	for (int i = 0; i < NUM_VERT; i++)
 	{
 		delete[] heights[i];
 	}
 	delete[] heights;
 
-	for (int i = 0; i < size; i++)
+	for (int i = 0; i < NUM_VERT; i++)
 	{
 		delete[] normals[i];
 	}
@@ -48,12 +48,24 @@ void Terrain::setHeight(int x, int z, float height)
 
 float Terrain::getHeight(int x, int z)
 {
-	return heights[z][x];
+	return randFloat(0.0, 1.0); // [z][x];
 }
 
 void Terrain::computeNormals()
 {
 	needNormals = false;
+	for (int z = 0; z < NUM_VERT; z++)
+	{
+		for (int x = 0; x < NUM_VERT; x++)
+		{
+			float heightL = getHeight(x - 1, z);
+			float heightR = getHeight(x + 1, z);
+			float heightD = getHeight(x, z - 1);
+			float heightU = getHeight(x, z + 1);
+			vec3 normal = vec3(heightL - heightR, 2.0f, heightD - heightU);
+			normals[z][x] = normalize(normal);
+		}
+	}
 }
 
 glm::vec3 Terrain::getNormal(int x, int z)
@@ -110,7 +122,7 @@ void Terrain::createVBO(GLfloat * array)
 	for (int y = 0; y < NUM_VERT; y++) {
 		for (int x = 0; x < NUM_VERT; x++) {
 			array[3 * x + NUM_VERT * y * 3] = newX; // x coordinate
-			array[3 * x + 1 + NUM_VERT * y * 3] = 0; // y coordinate
+			array[3 * x + 1 + NUM_VERT * y * 3] = getHeight(newX, newZ); // y coordinate
 			array[3 * x + 2 + NUM_VERT * y * 3] = newZ; // z coordinate
 
 			newX += size / (float)NUM_VERT;
@@ -140,4 +152,10 @@ void Terrain::createIBO(GLuint * array)
 			array[index + 5] = k + NUM_VERT + 1;
 		}
 	}
+}
+
+float Terrain::randFloat(float l, float h)
+{
+	float r = rand() / (float)RAND_MAX;
+	return (1.0f - r) * l + r * h;
 }
