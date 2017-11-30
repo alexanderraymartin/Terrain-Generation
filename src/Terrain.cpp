@@ -5,10 +5,8 @@
 using namespace std;
 using namespace glm;
 
-Terrain::Terrain(int _size)
+Terrain::Terrain()
 {
-	size = _size;
-
 	heights = new float*[NUM_VERT];
 
 	for (int i = 0; i < NUM_VERT; i++)
@@ -23,7 +21,6 @@ Terrain::Terrain(int _size)
 	}
 
 	needNormals = true;
-	seed = 1;//rand() % 1000000000;
 }
 
 Terrain::~Terrain()
@@ -142,10 +139,10 @@ void Terrain::createVBO(GLfloat * array)
 			array[3 * x + NUM_VERT * y * 3] = newX; // x coordinate
 			array[3 * x + 1 + NUM_VERT * y * 3] = getHeight(newX, newZ); // y coordinate
 			array[3 * x + 2 + NUM_VERT * y * 3] = newZ; // z coordinate
-			newX += size / (float)NUM_VERT;
+			newX += SIZE / (float)NUM_VERT;
 		}
 		newX = 0.0f;
-		newZ += size / (float)NUM_VERT;
+		newZ += SIZE / (float)NUM_VERT;
 	}
 }
 

@@ -61,13 +61,12 @@ public:
 	GLuint texBuf[2];
 	GLuint depthBuf;
 
-	bool FirstTime = true;
 	bool mouseDown = false;
 
 	GLuint IndexBufferID;
 	//////////////////////////////////////////////////////////////////////////
-	vec3 cameraPosition = { 5.0f, 5.0f, 5.0f };
-	vec3 cameraOffset = { 5.0f, 5.0f, 5.0f };
+	vec3 cameraPosition = { -200.0f, 350.0f, -250.0f };
+	vec3 cameraOffset = { -200.0f, 350.0f, -250.0f };
 	vec3 lookAtPosition = { 0.0f, 0.0f, 0.0f };
 
 	float light_x_position = 0.0f;
@@ -78,6 +77,8 @@ public:
 	float oldX = 0.0f;
 	float oldY = 0.0f;
 	float speed = 2.0f;
+
+	float terrainRotation = 0.0f;
 	//////////////////////////////////////////////////////////////////////////
 
 	void keyCallback(GLFWwindow *window, int key, int scancode, int action, int mods)
@@ -106,8 +107,8 @@ public:
 		{
 			light_x_position = 0.0f;
 
-			cameraPosition = { 5.0f, 5.0f, 5.0f };
-			cameraOffset = { 5.0f, 5.0f, 5.0f };
+			cameraPosition = { -200.0f, 350.0f, -250.0f };
+			cameraOffset = { -200.0f, 350.0f, -250.0f };
 			lookAtPosition = { 0.0f, 0.0f, 0.0f };
 
 		}
@@ -123,17 +124,16 @@ public:
 
 	void mouseCallback(GLFWwindow *window, int button, int action, int mods)
 	{
-		double posX, posY;
-
 		if (action == GLFW_PRESS)
 		{
+			glfwSetInputMode(windowManager->getHandle(), GLFW_CURSOR, GLFW_CURSOR_DISABLED);
 			mouseDown = true;
-			glfwGetCursorPos(window, &posX, &posY);
-			cout << "Pos X " << posX << " Pos Y " << posY << endl;
+			cout << "X: " << cameraPosition.x << " Y: " << cameraPosition.y << " Z: " << cameraPosition.z << endl;
 		}
 
 		if (action == GLFW_RELEASE)
 		{
+			glfwSetInputMode(windowManager->getHandle(), GLFW_CURSOR, GLFW_CURSOR_NORMAL);
 			mouseDown = false;
 		}
 	}
@@ -331,8 +331,6 @@ public:
 		groundProg->addAttribute("vertTex");
 		groundProg->addUniform("Texture0");
 		//////////////////////////////////////////////////////////////////////////
-		glfwSetInputMode(windowManager->getHandle(), GLFW_CURSOR, GLFW_CURSOR_DISABLED);
-
 		glGenFramebuffers(1, frameBuf);
 		glGenTextures(1, texBuf);
 		glGenRenderbuffers(1, &depthBuf);
@@ -351,7 +349,7 @@ public:
 	/**** geometry set up for terrain quad *****/
 	void initQuad()
 	{
-		terrain = new Terrain(100);
+		terrain = new Terrain();
 		terrain->generateTerrain();
 	}
 
@@ -461,8 +459,11 @@ public:
 		oldX = scale * (posX - width / 2.0) / (scaleX * width);
 		oldY = scale * (posY - height / 2.0) / (scaleY * height);
 
-		cTheta += dx;
-		phi += -dy;
+		if (mouseDown)
+		{
+			cTheta += dx;
+			phi += -dy;
+		}
 
 		if (phi > radians(80.0f)) {
 			phi = radians(80.0f);
@@ -482,9 +483,11 @@ public:
 
 	void drawGround()
 	{
+		terrainRotation = glfwGetTime() / 10.0f;
 		auto MV = std::make_shared<MatrixStack>();
 		MV->pushMatrix();
-			MV->translate(vec3(0, -1.0, 0));
+			MV->rotate(terrainRotation, vec3(0, 1, 0));
+			MV->translate(vec3(-terrain->SIZE / 2, 0, -terrain->SIZE / 2));
 			glUniformMatrix4fv(groundProg->getUniform("MV"), 1, GL_FALSE, value_ptr(MV->topMatrix()));
 			texture0->bind(groundProg->getUniform("Texture0"));
 			terrain->renderTerrain();

@@ -1,6 +1,6 @@
 Alex Martin  
 
-Camera: Mouse  
+Camera: Left Mouse Button  
 Movement: W A S D  
 Light position: Q E  
 Reset: Spacebar  

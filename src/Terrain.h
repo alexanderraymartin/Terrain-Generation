@@ -9,7 +9,7 @@
 class Terrain
 {
 	public:
-		Terrain(int _size);
+		Terrain();
 		~Terrain();
 		void setHeight(int x, int z, float height);
 		float getHeight(int x, int z);
@@ -26,16 +26,25 @@ class Terrain
 		float getSmoothNoise(int x, int z);
 		float interpolate(float a, float b, float blend);
 
-		const static int NUM_VERT = 100;
-		float AMPLITUDE = 75.0f;
-		const static int OCTAVES = 5;
+		const static int NUM_VERT = 300;
+		const static int SIZE = 500;
+		float AMPLITUDE = 200.0f;
+		const static int OCTAVES = 7;
 		float ROUGHNESS = 0.25f;
+		int seed = rand() % 1000000000;
+		
+		// good values ~ 25 second load
+		//const static int NUM_VERT = 300;
+		//const static int SIZE = 500;
+		//float AMPLITUDE = 200.0f;
+		//const static int OCTAVES = 7;
+		//float ROUGHNESS = 0.25f;
+		//int seed = rand() % 1000000000;
 
-		int size;
+
 		float** heights;
 		glm::vec3** normals;
 		bool needNormals;
-		int seed;
 		
 		GLuint quad_VertexArrayID;
 		GLuint quad_VertexBufferID;
