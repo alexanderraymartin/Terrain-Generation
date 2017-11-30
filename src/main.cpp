@@ -66,24 +66,18 @@ public:
 
 	GLuint IndexBufferID;
 	//////////////////////////////////////////////////////////////////////////
-	vec3 cameraPosition = { 0.0f, 0.0f, 0.0f };
-	vec3 cameraOffset = { 0.0f, 0.0f, 0.0f };
+	vec3 cameraPosition = { 5.0f, 5.0f, 5.0f };
+	vec3 cameraOffset = { 5.0f, 5.0f, 5.0f };
 	vec3 lookAtPosition = { 0.0f, 0.0f, 0.0f };
 
-	float object_x_rotation = 0.0f;
-	float object_y_rotation = 0.0f;
-	float object_z_rotation = 0.0f;
-
-	float light_x_position = -2.0f;
-	float light_y_position = 2.0f;
-	float light_z_position = 2.0f;
+	float light_x_position = 0.0f;
 
 	float cTheta = 0.0f;
 	float phi = 0.0f;
 
 	float oldX = 0.0f;
 	float oldY = 0.0f;
-	float speed = 0.2f;
+	float speed = 2.0f;
 	//////////////////////////////////////////////////////////////////////////
 
 	void keyCallback(GLFWwindow *window, int key, int scancode, int action, int mods)
@@ -110,16 +104,10 @@ public:
 		}
 		else if (key == GLFW_KEY_SPACE)
 		{
-			object_x_rotation = 0.0f;
-			object_y_rotation = 0.0f;
-			object_z_rotation = 0.0f;
+			light_x_position = 0.0f;
 
-			light_x_position = -2.0f;
-			light_y_position = 2.0f;
-			light_z_position = 2.0f;
-
-			cameraPosition = { 0.0f, 0.0f, 0.0f };
-			cameraOffset = { 0.0f, 0.0f, 0.0f };
+			cameraPosition = { 5.0f, 5.0f, 5.0f };
+			cameraOffset = { 5.0f, 5.0f, 5.0f };
 			lookAtPosition = { 0.0f, 0.0f, 0.0f };
 
 		}
@@ -645,7 +633,8 @@ public:
 
 		// Apply perspective projection.
 		P->pushMatrix();
-		P->perspective(45.0f, aspect, 0.01f, 100.0f);
+		// original values: 0.01f, 100.0f
+		P->perspective(45.0f, aspect, 0.1f, 1000.0f);
 
 		//draw ground
 		groundProg->bind();
@@ -662,16 +651,7 @@ public:
 		glUniformMatrix4fv(prog->getUniform("view"), 1, GL_FALSE, value_ptr(view));
 
 		//////////////////////////////////////////////////////////////////////////
-		drawSnowman(5, 0, -8, 0);
-		drawSnowman(9, 0, 6, 1);
-		drawSnowman(-4, 0, 3, 2);
-		drawSnowman(-18, 0, -2, 3);
-		drawSnowman(0, 0, 10, 4);
-		drawSnowman(7, 0, -7, 5);
-		drawSnowman(16, 0, -7, 6);
-		drawSnowman(10, 0, -4, 7);
-		drawSnowman(-1, 0, 5, 8);
-		drawSnowman(-16, 0, 5, 9);
+		drawSnowman(0, 0, 0, 0);
 	}
 };
 

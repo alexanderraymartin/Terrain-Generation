@@ -13,6 +13,7 @@ class Terrain
 		~Terrain();
 		void setHeight(int x, int z, float height);
 		float getHeight(int x, int z);
+		float Terrain::randFloat(float l, float h);
 		void computeNormals();
 		glm::vec3 getNormal(int x, int z);
 		void generateTerrain();
@@ -20,13 +21,21 @@ class Terrain
 		void createIBO(GLuint* array);
 		void createNormalBuffer(GLfloat * array);
 		void renderTerrain();
-		float Terrain::randFloat(float l, float h);
+		float getNoise(int x, int z);
+		float getInterpolatedNoise(float x, float z);
+		float getSmoothNoise(int x, int z);
+		float interpolate(float a, float b, float blend);
 
-		const static int NUM_VERT = 50;
+		const static int NUM_VERT = 100;
+		float AMPLITUDE = 75.0f;
+		const static int OCTAVES = 5;
+		float ROUGHNESS = 0.25f;
+
 		int size;
 		float** heights;
 		glm::vec3** normals;
 		bool needNormals;
+		int seed;
 		
 		GLuint quad_VertexArrayID;
 		GLuint quad_VertexBufferID;

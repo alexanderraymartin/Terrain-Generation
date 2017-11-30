@@ -13,10 +13,9 @@ out float dCo;
 out vec2 vTexCoord;
 out vec3 fragNor;
 
-
 void main()
 {
-	vec3 lightPosition = normalize(vec3(light_x_position, 1.0, 1.0));
+	vec3 lightPosition = normalize(vec3(light_x_position, 100.0, 0.0));
 	
 	gl_Position = P * view * MV * vertPos;
 	fragNor = (MV * vec4(vertNor, 0.0)).xyz;

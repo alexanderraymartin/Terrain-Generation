@@ -23,6 +23,7 @@ Terrain::Terrain(int _size)
 	}
 
 	needNormals = true;
+	seed = 1;//rand() % 1000000000;
 }
 
 Terrain::~Terrain()
@@ -48,7 +49,21 @@ void Terrain::setHeight(int x, int z, float height)
 
 float Terrain::getHeight(int x, int z)
 {
-	return randFloat(0.0, 1.0); // [z][x];
+	float height = 0;
+	float d = pow(2, OCTAVES - 1);
+	for (int i = 0; i < OCTAVES; i++)
+	{
+		float freq = pow(2, i) / d;
+		float amplitude = pow(ROUGHNESS, i) * AMPLITUDE;
+		height += getInterpolatedNoise(x * freq, z * freq) * amplitude;
+	}
+	return height;
+}
+
+float Terrain::randFloat(float l, float h)
+{
+	float r = rand() / (float)RAND_MAX;
+	return (1.0f - r) * l + r * h;
 }
 
 void Terrain::computeNormals()
@@ -84,11 +99,12 @@ void Terrain::generateTerrain()
 	createIBO(g_quad_index_buffer_data);
 	createNormalBuffer(g_quad_normal_buffer_data);
 
+	int size = 1000;
 	float GrndTex[] = {
 		0, 0, // back
-		0, 20,
-		20, 20,
-		20, 0
+		0, size,
+		size, size,
+		size, 0
 	};
 
 	GLuint VertexArrayID;
@@ -119,14 +135,13 @@ void Terrain::createVBO(GLfloat * array)
 	float newX = 0.0f;
 	float newZ = 0.0f;
 
-	for (int y = 0; y < NUM_VERT; y++) 
+	for (int y = 0; y < NUM_VERT; y++)
 	{
-		for (int x = 0; x < NUM_VERT; x++) 
+		for (int x = 0; x < NUM_VERT; x++)
 		{
 			array[3 * x + NUM_VERT * y * 3] = newX; // x coordinate
 			array[3 * x + 1 + NUM_VERT * y * 3] = getHeight(newX, newZ); // y coordinate
 			array[3 * x + 2 + NUM_VERT * y * 3] = newZ; // z coordinate
-
 			newX += size / (float)NUM_VERT;
 		}
 		newX = 0.0f;
@@ -159,9 +174,9 @@ void Terrain::createIBO(GLuint * array)
 void Terrain::createNormalBuffer(GLfloat * array)
 {
 
-	for (int z = 0; z < NUM_VERT; z++) 
+	for (int z = 0; z < NUM_VERT; z++)
 	{
-		for (int x = 0; x < NUM_VERT; x++) 
+		for (int x = 0; x < NUM_VERT; x++)
 		{
 			vec3 normal = getNormal(x, z);
 			array[3 * x + NUM_VERT * z * 3] = normal.x; // x coordinate
@@ -187,15 +202,53 @@ void Terrain::renderTerrain()
 
 	// draw!
 	glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, GIndxBuffObj);
-	glDrawElements(GL_TRIANGLES, NUM_VERT * NUM_VERT * 6, GL_UNSIGNED_INT, nullptr);
+	glDrawElements(GL_TRIANGLES, (NUM_VERT - 1) * (NUM_VERT - 1) * 6, GL_UNSIGNED_INT, nullptr);
 
 	glDisableVertexAttribArray(0);
 	glDisableVertexAttribArray(1);
 	glDisableVertexAttribArray(2);
 }
 
-float Terrain::randFloat(float l, float h)
+// get the noise
+float Terrain::getNoise(int x, int z)
 {
-	float r = rand() / (float)RAND_MAX;
-	return (1.0f - r) * l + r * h;
+	srand(x * 48512 + z * 324935 + seed);
+	return randFloat(0, 1) * 2.0f - 1.0f;
+}
+
+// get the smooth noise
+float Terrain::getSmoothNoise(int x, int z)
+{
+	float corners = (getNoise(x - 1, z - 1) + getNoise(x + 1, z - 1) + getNoise(x - 1, z + 1) + getNoise(x + 1, z + 1)) / 16.0f;
+	float sides = (getNoise(x - 1, z) + getNoise(x + 1, z) + getNoise(x, z - 1) + getNoise(x, z + 1)) / 8.0f;
+	float center = getNoise(x, z) / 4.0f;
+
+	return corners + sides + center;
+}
+
+// get the interpolated value given a point
+float Terrain::getInterpolatedNoise(float x, float z)
+{
+	int integerX = (int)x;
+	int integerZ = (int)z;
+	float fractionX = x - integerX;
+	float fractionZ = z - integerZ;
+
+	float vertex1 = getSmoothNoise(integerX, integerZ);
+	float vertex2 = getSmoothNoise(integerX + 1, integerZ);
+	float vertex3 = getSmoothNoise(integerX, integerZ + 1);
+	float vertex4 = getSmoothNoise(integerX + 1, integerZ + 1);
+
+	float interpolate1 = interpolate(vertex1, vertex2, fractionX);
+	float interpolate2 = interpolate(vertex3, vertex4, fractionX);
+
+	return interpolate(interpolate1, interpolate2, fractionZ);
+}
+
+// interpolate two values using cosine interpolation with a specified blend amount
+float Terrain::interpolate(float a, float b, float blend)
+{
+	float theta = blend * 3.14159265359f;
+	float f = (1.0f - cos(theta)) * 0.5f;
+	return a * (1.0f - f) + b * f;
 }
