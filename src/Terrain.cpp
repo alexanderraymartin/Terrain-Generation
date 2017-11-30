@@ -80,37 +80,37 @@ glm::vec3 Terrain::getNormal(int x, int z)
 
 void Terrain::generateTerrain()
 {
-	//generate the VAO
-	glGenVertexArrays(1, &quad_VertexArrayID);
-	glBindVertexArray(quad_VertexArrayID);
-
-	//generate vertex buffer to hand off to OGL
-	glGenBuffers(1, &quad_VertexBufferID);
-
-	//set the current state to focus on our vertex buffer
-	glBindBuffer(GL_ARRAY_BUFFER, quad_VertexBufferID);
-
-	GLfloat g_quad_vertex_buffer_data[(NUM_VERT * NUM_VERT) * 3];
 	createVBO(g_quad_vertex_buffer_data);
-
-	GLuint g_quad_index_buffer_data[(NUM_VERT - 1) * (NUM_VERT - 1) * 2 * 3];
 	createIBO(g_quad_index_buffer_data);
+	createNormalBuffer(g_quad_normal_buffer_data);
 
-	//actually memcopy the data - only do this once
-	glBufferData(GL_ARRAY_BUFFER, sizeof(g_quad_vertex_buffer_data), g_quad_vertex_buffer_data, GL_DYNAMIC_DRAW);
+	float GrndTex[] = {
+		0, 0, // back
+		0, 20,
+		20, 20,
+		20, 0
+	};
 
-	//we need to set up the vertex array
-	glEnableVertexAttribArray(0);
-	//key function to get up how many elements to pull out at a time (3)
-	glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 0, (void*)0);
+	GLuint VertexArrayID;
+	//generate the VAO
+	glGenVertexArrays(1, &VertexArrayID);
+	glBindVertexArray(VertexArrayID);
 
-	// Create and bind IBO
-	glGenBuffers(1, &quad_IndexBufferID);
-	glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, quad_IndexBufferID);
+	glGenBuffers(1, &GrndBuffObj);
+	glBindBuffer(GL_ARRAY_BUFFER, GrndBuffObj);
+	glBufferData(GL_ARRAY_BUFFER, sizeof(g_quad_vertex_buffer_data), g_quad_vertex_buffer_data, GL_STATIC_DRAW);
 
-	glBufferData(GL_ELEMENT_ARRAY_BUFFER, sizeof(g_quad_index_buffer_data), g_quad_index_buffer_data, GL_DYNAMIC_DRAW);
+	glGenBuffers(1, &GrndNorBuffObj);
+	glBindBuffer(GL_ARRAY_BUFFER, GrndNorBuffObj);
+	glBufferData(GL_ARRAY_BUFFER, sizeof(g_quad_normal_buffer_data), g_quad_normal_buffer_data, GL_STATIC_DRAW);
 
-	glBindVertexArray(0);
+	glGenBuffers(1, &GrndTexBuffObj);
+	glBindBuffer(GL_ARRAY_BUFFER, GrndTexBuffObj);
+	glBufferData(GL_ARRAY_BUFFER, sizeof(GrndTex), GrndTex, GL_STATIC_DRAW);
+
+	glGenBuffers(1, &GIndxBuffObj);
+	glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, GIndxBuffObj);
+	glBufferData(GL_ELEMENT_ARRAY_BUFFER, sizeof(g_quad_index_buffer_data), g_quad_index_buffer_data, GL_STATIC_DRAW);
 }
 
 void Terrain::createVBO(GLfloat * array)
@@ -119,8 +119,10 @@ void Terrain::createVBO(GLfloat * array)
 	float newX = 0.0f;
 	float newZ = 0.0f;
 
-	for (int y = 0; y < NUM_VERT; y++) {
-		for (int x = 0; x < NUM_VERT; x++) {
+	for (int y = 0; y < NUM_VERT; y++) 
+	{
+		for (int x = 0; x < NUM_VERT; x++) 
+		{
 			array[3 * x + NUM_VERT * y * 3] = newX; // x coordinate
 			array[3 * x + 1 + NUM_VERT * y * 3] = getHeight(newX, newZ); // y coordinate
 			array[3 * x + 2 + NUM_VERT * y * 3] = newZ; // z coordinate
@@ -152,6 +154,44 @@ void Terrain::createIBO(GLuint * array)
 			array[index + 5] = k + NUM_VERT + 1;
 		}
 	}
+}
+
+void Terrain::createNormalBuffer(GLfloat * array)
+{
+
+	for (int z = 0; z < NUM_VERT; z++) 
+	{
+		for (int x = 0; x < NUM_VERT; x++) 
+		{
+			vec3 normal = getNormal(x, z);
+			array[3 * x + NUM_VERT * z * 3] = normal.x; // x coordinate
+			array[3 * x + 1 + NUM_VERT * z * 3] = normal.y; // y coordinate
+			array[3 * x + 2 + NUM_VERT * z * 3] = normal.z; // z coordinate
+		}
+	}
+}
+
+void Terrain::renderTerrain()
+{
+	glEnableVertexAttribArray(0);
+	glBindBuffer(GL_ARRAY_BUFFER, GrndBuffObj);
+	glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 0, 0);
+
+	glEnableVertexAttribArray(1);
+	glBindBuffer(GL_ARRAY_BUFFER, GrndNorBuffObj);
+	glVertexAttribPointer(1, 3, GL_FLOAT, GL_FALSE, 0, 0);
+
+	glEnableVertexAttribArray(2);
+	glBindBuffer(GL_ARRAY_BUFFER, GrndTexBuffObj);
+	glVertexAttribPointer(2, 2, GL_FLOAT, GL_FALSE, 0, 0);
+
+	// draw!
+	glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, GIndxBuffObj);
+	glDrawElements(GL_TRIANGLES, NUM_VERT * NUM_VERT * 6, GL_UNSIGNED_INT, nullptr);
+
+	glDisableVertexAttribArray(0);
+	glDisableVertexAttribArray(1);
+	glDisableVertexAttribArray(2);
 }
 
 float Terrain::randFloat(float l, float h)

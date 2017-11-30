@@ -41,6 +41,9 @@ public:
 	std::shared_ptr<Program> prog;
 	std::shared_ptr<Program> groundProg;
 
+	// texture
+	shared_ptr<Texture> texture0;
+
 	// shader counter for toggle
 	int currentShader = 0;
 
@@ -274,6 +277,14 @@ public:
 		sphere->resize();
 		sphere->init();
 	}
+	
+	void initTex(const std::string& resourceDirectory)
+	{
+		texture0 = make_shared<Texture>();
+		texture0->setFilename(resourceDirectory + "/grass.jpg");
+		texture0->init();
+		texture0->setUnit(0);
+	}
 
 	void init(const std::string& resourceDirectory)
 	{
@@ -286,6 +297,8 @@ public:
 
 		// Enable z-buffer test.
 		glEnable(GL_DEPTH_TEST);
+
+		initTex(resourceDirectory);
 
 		//////////////////////////////////////////////////////////////////////////
 		// Initialize the GLSL program.
@@ -325,8 +338,10 @@ public:
 		groundProg->addUniform("MV");
 		groundProg->addUniform("view");
 		groundProg->addUniform("light_x_position");
-		groundProg->addUniform("Texture0");
 		groundProg->addAttribute("vertPos");
+		groundProg->addAttribute("vertNor");
+		groundProg->addAttribute("vertTex");
+		groundProg->addUniform("Texture0");
 		//////////////////////////////////////////////////////////////////////////
 		glfwSetInputMode(windowManager->getHandle(), GLFW_CURSOR, GLFW_CURSOR_DISABLED);
 
@@ -342,6 +357,7 @@ public:
 
 		//glPolygonMode(GL_FRONT_AND_BACK, GL_LINE);
 	}
+
 
 
 	/**** geometry set up for terrain quad *****/
@@ -479,11 +495,11 @@ public:
 	void drawGround()
 	{
 		auto MV = std::make_shared<MatrixStack>();
-		glBindVertexArray(terrain->quad_VertexArrayID);
 		MV->pushMatrix();
 			MV->translate(vec3(0, -1.0, 0));
 			glUniformMatrix4fv(groundProg->getUniform("MV"), 1, GL_FALSE, value_ptr(MV->topMatrix()));
-			glDrawElements(GL_TRIANGLES, terrain->NUM_VERT * terrain->NUM_VERT * 6, GL_UNSIGNED_INT, nullptr);
+			texture0->bind(groundProg->getUniform("Texture0"));
+			terrain->renderTerrain();
 		MV->popMatrix();
 	}
 
@@ -631,6 +647,7 @@ public:
 		P->pushMatrix();
 		P->perspective(45.0f, aspect, 0.01f, 100.0f);
 
+		//draw ground
 		groundProg->bind();
 		glUniformMatrix4fv(groundProg->getUniform("P"), 1, GL_FALSE, glm::value_ptr(P->topMatrix()));
 		glUniformMatrix4fv(groundProg->getUniform("view"), 1, GL_FALSE, value_ptr(view));
