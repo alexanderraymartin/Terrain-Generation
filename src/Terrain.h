@@ -11,11 +11,14 @@ class Terrain
 	public:
 		Terrain();
 		~Terrain();
-		void setHeight(int x, int z, float height);
 		float getHeight(int x, int z);
+		float computeHeight(int x, int z);
 		float Terrain::randFloat(float l, float h);
 		void computeNormals();
 		glm::vec3 getNormal(int x, int z);
+		void getNewTerrain();
+
+		void renderSolidTerrain();
 		void generateTerrain();
 		void createVBO(GLfloat* array);
 		void createIBO(GLuint* array);
@@ -31,7 +34,6 @@ class Terrain
 		float AMPLITUDE = 200.0f;
 		const static int OCTAVES = 7;
 		float ROUGHNESS = 0.25f;
-		int seed = rand() % 1000000000;
 		
 		// good values ~ 25 second load
 		//const static int NUM_VERT = 300;
@@ -39,13 +41,14 @@ class Terrain
 		//float AMPLITUDE = 200.0f;
 		//const static int OCTAVES = 7;
 		//float ROUGHNESS = 0.25f;
-		//int seed = rand() % 1000000000;
 
 
+		int seed;
 		float** heights;
 		glm::vec3** normals;
 		bool needNormals;
-		
+		bool isWireFrame;
+
 		GLuint quad_VertexArrayID;
 		GLuint quad_VertexBufferID;
 		GLuint quad_IndexBufferID;

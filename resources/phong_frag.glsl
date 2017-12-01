@@ -12,7 +12,7 @@ out vec4 color;
 
 void main()
 {
-	vec3 lightPosition = normalize(vec3(light_x_position, 1.0, 1.0));
+	vec3 lightPosition = normalize(vec3(light_x_position, 100.0, 100.0));
 	vec3 normal = normalize(fragNor);
 	vec3 reflection = reflect(-lightPosition, normal);
 	

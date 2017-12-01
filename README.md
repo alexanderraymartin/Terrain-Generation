@@ -3,6 +3,8 @@ Alex Martin
 Camera: Left Mouse Button  
 Movement: W A S D  
 Light position: Q E  
+Generate New Terrain: Enter  
+Render Terrain: R  
 Reset: Spacebar  
   
 References:  

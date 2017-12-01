@@ -21,6 +21,9 @@ Terrain::Terrain()
 	}
 
 	needNormals = true;
+
+	isWireFrame = true;
+	glPolygonMode(GL_FRONT_AND_BACK, GL_LINE);
 }
 
 Terrain::~Terrain()
@@ -38,13 +41,12 @@ Terrain::~Terrain()
 	delete[] normals;
 }
 
-void Terrain::setHeight(int x, int z, float height)
+float Terrain::getHeight(int x, int z)
 {
-	heights[z][x] = height;
-	needNormals = true;
+	return heights[z][x];
 }
 
-float Terrain::getHeight(int x, int z)
+float Terrain::computeHeight(int x, int z)
 {
 	float height = 0;
 	float d = pow(2, OCTAVES - 1);
@@ -65,15 +67,14 @@ float Terrain::randFloat(float l, float h)
 
 void Terrain::computeNormals()
 {
-	needNormals = false;
 	for (int z = 0; z < NUM_VERT; z++)
 	{
 		for (int x = 0; x < NUM_VERT; x++)
 		{
-			float heightL = getHeight(x - 1, z);
-			float heightR = getHeight(x + 1, z);
-			float heightD = getHeight(x, z - 1);
-			float heightU = getHeight(x, z + 1);
+			float heightL = computeHeight(x - 1, z);
+			float heightR = computeHeight(x + 1, z);
+			float heightD = computeHeight(x, z - 1);
+			float heightU = computeHeight(x, z + 1);
 			vec3 normal = vec3(heightL - heightR, 2.0f, heightD - heightU);
 			normals[z][x] = normalize(normal);
 		}
@@ -82,16 +83,41 @@ void Terrain::computeNormals()
 
 glm::vec3 Terrain::getNormal(int x, int z)
 {
-	if (needNormals)
+	if (needNormals && !isWireFrame)
 	{
+		needNormals = false;
 		computeNormals();
+	}
+	if (isWireFrame) 
+	{
+		return vec3(0.0f, 1.0f, 0.0f);
 	}
 	return normals[z][x];
 }
 
+void Terrain::getNewTerrain() 
+{
+	needNormals = true;
+	isWireFrame = true;
+	glPolygonMode(GL_FRONT_AND_BACK, GL_LINE);
+	generateTerrain();
+}
+
+void Terrain::renderSolidTerrain()
+{
+	isWireFrame = false;
+	glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);
+
+	createNormalBuffer(g_quad_normal_buffer_data);
+	glGenBuffers(1, &GrndNorBuffObj);
+	glBindBuffer(GL_ARRAY_BUFFER, GrndNorBuffObj);
+	glBufferData(GL_ARRAY_BUFFER, sizeof(g_quad_normal_buffer_data), g_quad_normal_buffer_data, GL_STATIC_DRAW);
+
+}
 
 void Terrain::generateTerrain()
 {
+	seed = rand() % 1000000000;
 	createVBO(g_quad_vertex_buffer_data);
 	createIBO(g_quad_index_buffer_data);
 	createNormalBuffer(g_quad_normal_buffer_data);
@@ -132,13 +158,15 @@ void Terrain::createVBO(GLfloat * array)
 	float newX = 0.0f;
 	float newZ = 0.0f;
 
-	for (int y = 0; y < NUM_VERT; y++)
+	for (int z = 0; z < NUM_VERT; z++)
 	{
 		for (int x = 0; x < NUM_VERT; x++)
 		{
-			array[3 * x + NUM_VERT * y * 3] = newX; // x coordinate
-			array[3 * x + 1 + NUM_VERT * y * 3] = getHeight(newX, newZ); // y coordinate
-			array[3 * x + 2 + NUM_VERT * y * 3] = newZ; // z coordinate
+			float height = computeHeight(newX, newZ);
+			array[3 * x + NUM_VERT * z * 3] = newX; // x coordinate
+			array[3 * x + 1 + NUM_VERT * z * 3] = height; // y coordinate
+			heights[z][x] = height;
+			array[3 * x + 2 + NUM_VERT * z * 3] = newZ; // z coordinate
 			newX += SIZE / (float)NUM_VERT;
 		}
 		newX = 0.0f;
@@ -170,7 +198,6 @@ void Terrain::createIBO(GLuint * array)
 
 void Terrain::createNormalBuffer(GLfloat * array)
 {
-
 	for (int z = 0; z < NUM_VERT; z++)
 	{
 		for (int x = 0; x < NUM_VERT; x++)

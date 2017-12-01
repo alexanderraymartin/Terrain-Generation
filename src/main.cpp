@@ -27,6 +27,13 @@ const int NUM_OF_LEVELS = 5;
 
 float arm_rotate = 45.0f;
 
+float playerPositionX = 0.0f;
+float playerPositionY = 200.0f;
+float playerPositionZ = 0.0f;
+
+float fallSpeed = 0.0f;
+float gravity = 0.01f;
+
 class Application : public EventCallbacks
 {
 
@@ -65,8 +72,8 @@ public:
 
 	GLuint IndexBufferID;
 	//////////////////////////////////////////////////////////////////////////
-	vec3 cameraPosition = { -200.0f, 350.0f, -250.0f };
-	vec3 cameraOffset = { -200.0f, 350.0f, -250.0f };
+	vec3 cameraPosition = { 0.0f, 10.0f, 0.0f };
+	vec3 cameraOffset = { 0.0f, 10.0f, 0.0f };
 	vec3 lookAtPosition = { 0.0f, 0.0f, 0.0f };
 
 	float light_x_position = 0.0f;
@@ -103,12 +110,20 @@ public:
 		{
 			moveBackward();
 		}
+		else if (key == GLFW_KEY_R && action == GLFW_PRESS)
+		{
+			terrain->renderSolidTerrain();
+		}
+		else if (key == GLFW_KEY_ENTER && action == GLFW_PRESS)
+		{
+			terrain->getNewTerrain();
+		}
 		else if (key == GLFW_KEY_SPACE)
 		{
 			light_x_position = 0.0f;
 
-			cameraPosition = { -200.0f, 350.0f, -250.0f };
-			cameraOffset = { -200.0f, 350.0f, -250.0f };
+			cameraPosition = { 0.0f, 10.0f, 0.0f };
+			cameraOffset = { 0.0f, 10.0f, 0.0f };
 			lookAtPosition = { 0.0f, 0.0f, 0.0f };
 
 		}
@@ -340,8 +355,6 @@ public:
 		glBindRenderbuffer(GL_RENDERBUFFER, depthBuf);
 		glRenderbufferStorage(GL_RENDERBUFFER, GL_DEPTH_COMPONENT, width, height);
 		glFramebufferRenderbuffer(GL_FRAMEBUFFER, GL_DEPTH_ATTACHMENT, GL_RENDERBUFFER, depthBuf);
-
-		//glPolygonMode(GL_FRONT_AND_BACK, GL_LINE);
 	}
 
 
@@ -504,8 +517,7 @@ public:
 		// Global
 		MV->pushMatrix();
 			MV->loadIdentity();
-			MV->translate(vec3(x, y + 0.25, z));
-			MV->scale(vec3(0.25f, 0.25f, 0.25f));
+			MV->translate(vec3(x, y - 2.0f, z));
 			setMaterial(color % 4);
 			glUniformMatrix4fv(prog->getUniform("MV"), 1, GL_FALSE, glm::value_ptr(MV->topMatrix()));
 		//////////////////////////////////////////////////////////////////////////
@@ -654,7 +666,21 @@ public:
 		glUniformMatrix4fv(prog->getUniform("view"), 1, GL_FALSE, value_ptr(view));
 
 		//////////////////////////////////////////////////////////////////////////
-		drawSnowman(0, 0, 0, 0);
+		playerPositionY += fallSpeed;
+		float terrainHeight = terrain->getHeight(playerPositionX + terrain->SIZE / 2, playerPositionZ + terrain->SIZE / 2);
+
+		if (playerPositionY < terrainHeight)
+		{
+			playerPositionY = terrainHeight;
+			fallSpeed = 0.0f;
+		}
+		if (playerPositionY > terrainHeight)
+		{
+			fallSpeed -= gravity;
+			fallSpeed = min(fallSpeed, 0.1f);
+		}
+
+		drawSnowman(playerPositionX, playerPositionY, playerPositionZ, 1);
 	}
 };
 
