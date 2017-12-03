@@ -5,6 +5,7 @@ Movement: W A S D
 Light position: Q E  
 Generate New Terrain: Enter  
 Render Terrain: R  
+Change Texture: T  
 Reset: Spacebar  
   
 References:  

@@ -11,7 +11,7 @@ class Terrain
 	public:
 		Terrain();
 		~Terrain();
-		float getHeight(int x, int z);
+		float getHeight(float x, float z);
 		float computeHeight(int x, int z);
 		float Terrain::randFloat(float l, float h);
 		void computeNormals();
@@ -28,6 +28,7 @@ class Terrain
 		float getInterpolatedNoise(float x, float z);
 		float getSmoothNoise(int x, int z);
 		float interpolate(float a, float b, float blend);
+		float barryCentric(glm::vec3 p1, glm::vec3 p2, glm::vec3 p3, glm::vec2 pos);
 
 		const static int NUM_VERT = 300;
 		const static int SIZE = 500;

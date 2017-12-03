@@ -28,11 +28,13 @@ const int NUM_OF_LEVELS = 5;
 float arm_rotate = 45.0f;
 
 float playerPositionX = 0.0f;
-float playerPositionY = 200.0f;
+float playerPositionY = 0.0f;
 float playerPositionZ = 0.0f;
 
 float fallSpeed = 0.0f;
 float gravity = 0.01f;
+
+int textureIndex = 0;
 
 class Application : public EventCallbacks
 {
@@ -49,7 +51,10 @@ public:
 	std::shared_ptr<Program> groundProg;
 
 	// texture
-	shared_ptr<Texture> texture0;
+	shared_ptr<Texture> textureGrass;
+	shared_ptr<Texture> textureSnow;
+	shared_ptr<Texture> textureSand;
+	shared_ptr<Texture> textureDirt;
 
 	// shader counter for toggle
 	int currentShader = 0;
@@ -109,6 +114,17 @@ public:
 		else if (key == GLFW_KEY_S)
 		{
 			moveBackward();
+		}
+		else if (key == GLFW_KEY_T && action == GLFW_PRESS)
+		{
+			if (textureIndex < 3)
+			{
+				textureIndex++;
+			}
+			else
+			{
+				textureIndex = 0;
+			}
 		}
 		else if (key == GLFW_KEY_R && action == GLFW_PRESS)
 		{
@@ -283,10 +299,25 @@ public:
 	
 	void initTex(const std::string& resourceDirectory)
 	{
-		texture0 = make_shared<Texture>();
-		texture0->setFilename(resourceDirectory + "/grass.jpg");
-		texture0->init();
-		texture0->setUnit(0);
+		textureGrass = make_shared<Texture>();
+		textureGrass->setFilename(resourceDirectory + "/grass.jpg");
+		textureGrass->init();
+		textureGrass->setUnit(0);
+
+		textureSnow = make_shared<Texture>();
+		textureSnow->setFilename(resourceDirectory + "/snow.jpg");
+		textureSnow->init();
+		textureSnow->setUnit(0);
+
+		textureSand = make_shared<Texture>();
+		textureSand->setFilename(resourceDirectory + "/sand.jpg");
+		textureSand->init();
+		textureSand->setUnit(0);
+
+		textureDirt = make_shared<Texture>();
+		textureDirt->setFilename(resourceDirectory + "/dirt.jpg");
+		textureDirt->init();
+		textureDirt->setUnit(0);
 	}
 
 	void init(const std::string& resourceDirectory)
@@ -499,10 +530,26 @@ public:
 		terrainRotation = glfwGetTime() / 10.0f;
 		auto MV = std::make_shared<MatrixStack>();
 		MV->pushMatrix();
-			MV->rotate(terrainRotation, vec3(0, 1, 0));
+			//MV->rotate(terrainRotation, vec3(0, 1, 0));
 			MV->translate(vec3(-terrain->SIZE / 2, 0, -terrain->SIZE / 2));
 			glUniformMatrix4fv(groundProg->getUniform("MV"), 1, GL_FALSE, value_ptr(MV->topMatrix()));
-			texture0->bind(groundProg->getUniform("Texture0"));
+			if (textureIndex == 0)
+			{
+				textureGrass->bind(groundProg->getUniform("Texture0"));
+			}
+			else if (textureIndex == 1)
+			{
+				textureSnow->bind(groundProg->getUniform("Texture0"));
+			}
+			else if(textureIndex == 2)
+			{
+				textureSand->bind(groundProg->getUniform("Texture0"));
+			}
+			else
+			{
+				textureDirt->bind(groundProg->getUniform("Texture0"));
+			}
+
 			terrain->renderTerrain();
 		MV->popMatrix();
 	}
@@ -517,7 +564,7 @@ public:
 		// Global
 		MV->pushMatrix();
 			MV->loadIdentity();
-			MV->translate(vec3(x, y - 2.0f, z));
+			MV->translate(vec3(x, y + 5.25f, z));
 			setMaterial(color % 4);
 			glUniformMatrix4fv(prog->getUniform("MV"), 1, GL_FALSE, glm::value_ptr(MV->topMatrix()));
 		//////////////////////////////////////////////////////////////////////////
@@ -666,8 +713,11 @@ public:
 		glUniformMatrix4fv(prog->getUniform("view"), 1, GL_FALSE, value_ptr(view));
 
 		//////////////////////////////////////////////////////////////////////////
+		playerPositionX += 0.1;
+		playerPositionZ += 0.1;
+
 		playerPositionY += fallSpeed;
-		float terrainHeight = terrain->getHeight(playerPositionX + terrain->SIZE / 2, playerPositionZ + terrain->SIZE / 2);
+		float terrainHeight = terrain->getHeight(playerPositionX, playerPositionZ);
 
 		if (playerPositionY < terrainHeight)
 		{
@@ -681,6 +731,12 @@ public:
 		}
 
 		drawSnowman(playerPositionX, playerPositionY, playerPositionZ, 1);
+
+
+		drawSnowman(5, terrain->getHeight(5, 5), 5, 0);
+		drawSnowman(20, terrain->getHeight(20, 50), 50, 1);
+		drawSnowman(50, terrain->getHeight(50, 20), 20, 2);
+		drawSnowman(100, terrain->getHeight(100, 100), 100, 3);
 	}
 };
 

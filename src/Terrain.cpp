@@ -41,9 +41,39 @@ Terrain::~Terrain()
 	delete[] normals;
 }
 
-float Terrain::getHeight(int x, int z)
+// uses barry centrix coordinates to find the height
+// algorithm adapted from ThinMatrix on YouTube 
+float Terrain::getHeight(float worldX, float worldZ)
 {
-	return heights[z][x];
+	//SIZE / 2 is to offset the centering of the terrain
+	float terrainX = worldX + SIZE / 2;
+	float terrainZ = worldZ + SIZE / 2;
+
+
+	float gridSquareSize = SIZE / float((NUM_VERT - 1));
+	int gridX = (int)(terrainX / gridSquareSize);
+	int gridZ = (int)(terrainZ / gridSquareSize);
+
+	if (gridX >= NUM_VERT - 1 || gridZ >= NUM_VERT - 1 || gridX < 0 || gridZ < 0)
+	{
+		return 0;
+	}
+
+	float xCoord = (fmod(terrainX, gridSquareSize)) / gridSquareSize;
+	float zCoord = (fmod(terrainZ, gridSquareSize)) / gridSquareSize;
+	float answer;
+
+	if (xCoord <= (1 - zCoord))
+	{
+		answer = barryCentric(vec3(0, heights[gridZ][gridX], 0), vec3(1, heights[gridZ + 1][gridX], 0), vec3(0, heights[gridZ][gridX + 1], 1), vec2(xCoord, zCoord));
+	}
+	else
+	{
+		answer = barryCentric(vec3(1, heights[gridZ + 1][gridX], 0), vec3(1, heights[gridZ + 1][gridX + 1], 1), vec3(0, heights[gridZ][gridX + 1], 1), vec2(xCoord, zCoord));
+	}
+
+	return answer;
+
 }
 
 float Terrain::computeHeight(int x, int z)
@@ -88,14 +118,14 @@ glm::vec3 Terrain::getNormal(int x, int z)
 		needNormals = false;
 		computeNormals();
 	}
-	if (isWireFrame) 
+	if (isWireFrame)
 	{
 		return vec3(0.0f, 1.0f, 0.0f);
 	}
 	return normals[z][x];
 }
 
-void Terrain::getNewTerrain() 
+void Terrain::getNewTerrain()
 {
 	needNormals = true;
 	isWireFrame = true;
@@ -275,4 +305,14 @@ float Terrain::interpolate(float a, float b, float blend)
 	float theta = blend * 3.14159265359f;
 	float f = (1.0f - cos(theta)) * 0.5f;
 	return a * (1.0f - f) + b * f;
+}
+
+// standard barry centric algorithm
+float Terrain::barryCentric(vec3 p1, vec3 p2, vec3 p3, vec2 pos)
+{
+	float det = (p2.z - p3.z) * (p1.x - p3.x) + (p3.x - p2.x) * (p1.z - p3.z);
+	float l1 = ((p2.z - p3.z) * (pos.x - p3.x) + (p3.x - p2.x) * (pos.y - p3.z)) / det;
+	float l2 = ((p3.z - p1.z) * (pos.x - p3.x) + (p1.x - p3.x) * (pos.y - p3.z)) / det;
+	float l3 = 1.0f - l1 - l2;
+	return l1 * p1.y + l2 * p2.y + l3 * p3.y;
 }
