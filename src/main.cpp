@@ -15,26 +15,23 @@
 #include <glm/gtc/matrix_transform.hpp>
 
 #include "Terrain.h"
+#include "Snowman.h"
 
 using namespace std;
 using namespace glm;
 
-// number of triangles
-const int NUM_OF_TRIANGLES = 50;
-
-// number of levels
-const int NUM_OF_LEVELS = 5;
-
-float arm_rotate = 45.0f;
-
-float playerPositionX = 0.0f;
-float playerPositionY = 0.0f;
-float playerPositionZ = 0.0f;
-
-float fallSpeed = 0.0f;
-float gravity = 0.01f;
-
 int textureIndex = 0;
+
+Snowman * snowman1;
+Snowman * snowman2;
+Snowman * snowman3;
+Snowman * snowman4;
+Snowman * snowman5;
+Snowman * snowman6;
+Snowman * snowman7;
+Snowman * snowman8;
+Snowman * snowman9;
+Snowman * snowman10;
 
 class Application : public EventCallbacks
 {
@@ -173,129 +170,6 @@ public:
 	{
 		glViewport(0, 0, width, height);
 	}
-
-	//////////////////////////////////////////////////////////////////////////
-	// Snowman
-	// create a cylinder divided into triangles
-	void createVBO(GLfloat* array) {
-		// top of circle
-		float newX;
-		float newZ;
-		// center of circle
-		float centerX = 0.0f;
-		float centerZ = 0.0f;
-
-		// angle to rotate
-		float angle = glm::radians(360.0 / NUM_OF_TRIANGLES);
-
-		for (int y = 0; y < NUM_OF_LEVELS; y++) {
-			newX = 0.0f;
-			newZ = 0.5f;
-			for (int i = 0; i < NUM_OF_TRIANGLES; i++) {
-				array[3 * i + NUM_OF_TRIANGLES * y * 3] = newX; // x
-				array[3 * i + 1 + NUM_OF_TRIANGLES * y * 3] = y / float(NUM_OF_LEVELS); // y
-				array[3 * i + 2 + NUM_OF_TRIANGLES * y * 3] = newZ; // z
-
-				float x1 = newX - centerX;
-				float z1 = newZ - centerZ;
-
-				// rotate point
-				float x2 = x1 * cos(angle) - z1 * sin(angle);
-				float z2 = x1 * sin(angle) + z1 * cos(angle);
-
-				newX = x2 + centerX;
-				newZ = z2 + centerZ;
-			}
-		}
-	}
-
-	void createIBO(GLuint* array) {
-		for (int j = 0; j < NUM_OF_LEVELS; j++)
-		{
-			// last level
-			if (j == NUM_OF_LEVELS - 1) {
-				return;
-			}
-
-			for (int i = 0; i < NUM_OF_TRIANGLES; i++)
-			{
-				// last index in each level
-				if (i == NUM_OF_TRIANGLES - 1) {
-					// Triangles Up
-					// i, i + 1, i + NUM_OF_TRIANGLES + 1
-					int index = (i + j * NUM_OF_TRIANGLES) * 6;
-					int k = i + (j * NUM_OF_TRIANGLES);
-					array[index] = k;
-					array[index + 1] = k + 1 - NUM_OF_TRIANGLES;
-					array[index + 2] = k + 1;
-
-					// Triangles Down
-					// i, i + NUM_OF_TRIANGLES, i + NUM_OF_TRIANGLES + 1
-					array[index + 3] = k;
-					array[index + 4] = k + NUM_OF_TRIANGLES;
-					array[index + 5] = k + 1;
-					break;
-				}
-
-				// Triangles Up
-				// i, i + 1, i + NUM_OF_TRIANGLES + 1
-				int index = (i + j * NUM_OF_TRIANGLES) * 6;
-				int k = i + (j * NUM_OF_TRIANGLES);
-				array[index] = k;
-				array[index + 1] = k + 1;
-				array[index + 2] = k + NUM_OF_TRIANGLES + 1;
-
-				// Triangles Down
-				// i, i + NUM_OF_TRIANGLES, i + NUM_OF_TRIANGLES + 1
-				array[index + 3] = k;
-				array[index + 4] = k + NUM_OF_TRIANGLES;
-				array[index + 5] = k + NUM_OF_TRIANGLES + 1;
-			}
-		}
-
-	}
-
-	void initSnowman(const std::string& resourceDirectory)
-	{
-		//generate the VAO
-		glGenVertexArrays(1, &VertexArrayID);
-		glBindVertexArray(VertexArrayID);
-
-		//generate vertex buffer to hand off to OGL
-		glGenBuffers(1, &VertexBufferID);
-
-		//set the current state to focus on our vertex buffer
-		glBindBuffer(GL_ARRAY_BUFFER, VertexBufferID);
-
-		GLfloat g_vertex_buffer_data[(NUM_OF_TRIANGLES * NUM_OF_LEVELS) * 3];
-		createVBO(g_vertex_buffer_data);
-
-		GLuint g_index_buffer_data[NUM_OF_TRIANGLES * NUM_OF_LEVELS * 2 * 3];
-		createIBO(g_index_buffer_data);
-
-		//actually memcopy the data - only do this once
-		glBufferData(GL_ARRAY_BUFFER, sizeof(g_vertex_buffer_data), g_vertex_buffer_data, GL_DYNAMIC_DRAW);
-
-		//we need to set up the vertex array
-		glEnableVertexAttribArray(0);
-		//key function to get up how many elements to pull out at a time (3)
-		glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 0, (void*)0);
-
-		// Create and bind IBO
-		glGenBuffers(1, &IndexBufferID);
-		glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, IndexBufferID);
-
-		glBufferData(GL_ELEMENT_ARRAY_BUFFER, sizeof(g_index_buffer_data), g_index_buffer_data, GL_DYNAMIC_DRAW);
-
-		glBindVertexArray(0);
-
-		///////////////////////////////////////////////////////////////////////////////////////
-		// Initialize mesh.
-		sphere = make_shared<Shape>();
-		sphere->loadMesh(resourceDirectory + "/sphere.obj");
-		sphere->resize();
-		sphere->init();
-	}
 	
 	void initTex(const std::string& resourceDirectory)
 	{
@@ -388,13 +262,12 @@ public:
 		glFramebufferRenderbuffer(GL_FRAMEBUFFER, GL_DEPTH_ATTACHMENT, GL_RENDERBUFFER, depthBuf);
 	}
 
-
-
 	/**** geometry set up for terrain quad *****/
-	void initQuad()
+	void initQuad(const std::string& resourceDirectory)
 	{
 		terrain = new Terrain();
 		terrain->generateTerrain();
+		createEntities(resourceDirectory);
 	}
 
 	/* Helper function to create the framebuffer object and
@@ -422,37 +295,6 @@ public:
 		{
 			cout << "Error setting up frame buffer - exiting" << endl;
 			exit(0);
-		}
-	}
-
-	void setMaterial(int i) {
-		int index = i;
-		if (index > 3) index = 0;
-		switch (index) {
-		case 0: // shiny blue plastic
-			glUniform3f(prog->getUniform("MatAmb"), 0.02, 0.04, 0.2);
-			glUniform3f(prog->getUniform("MatDif"), 0.0, 0.16, 0.9);
-			glUniform3f(prog->getUniform("MatSpec"), 0.14, 0.2, 0.8);
-			glUniform1f(prog->getUniform("shine"), 120.0);
-			break;
-		case 1: // flat grey
-			glUniform3f(prog->getUniform("MatAmb"), 0.13, 0.13, 0.14);
-			glUniform3f(prog->getUniform("MatDif"), 0.3, 0.3, 0.4);
-			glUniform3f(prog->getUniform("MatSpec"), 0.3, 0.3, 0.4);
-			glUniform1f(prog->getUniform("shine"), 4.0);
-			break;
-		case 2: // brass
-			glUniform3f(prog->getUniform("MatAmb"), 0.3294, 0.2235, 0.02745);
-			glUniform3f(prog->getUniform("MatDif"), 0.7804, 0.5686, 0.11373);
-			glUniform3f(prog->getUniform("MatSpec"), 0.9922, 0.941176, 0.80784);
-			glUniform1f(prog->getUniform("shine"), 27.9);
-			break;
-		case 3: // shiny bright pink
-			glUniform3f(prog->getUniform("MatAmb"), 0.13, 0.13, 0.14);
-			glUniform3f(prog->getUniform("MatDif"), 0.956, 0.248, 0.419);
-			glUniform3f(prog->getUniform("MatSpec"), 0.5, 0.5, 0.5);
-			glUniform1f(prog->getUniform("shine"), 80.0);
-			break;
 		}
 	}
 
@@ -554,124 +396,18 @@ public:
 		MV->popMatrix();
 	}
 
-	void drawSnowman(float x, float y, float z, int color)
+	void createEntities(const std::string& resourceDirectory)
 	{
-		auto MV = std::make_shared<MatrixStack>();
-		
-		// arm rotation by time
-		arm_rotate = sin(glfwGetTime());
-
-		// Global
-		MV->pushMatrix();
-			MV->loadIdentity();
-			MV->translate(vec3(x, y + 5.25f, z));
-			setMaterial(color % 4);
-			glUniformMatrix4fv(prog->getUniform("MV"), 1, GL_FALSE, glm::value_ptr(MV->topMatrix()));
-		//////////////////////////////////////////////////////////////////////////
-
-		// Body Middle
-			MV->pushMatrix();
-				MV->translate(vec3(0.0f, 0.0f, 0.0f));
-				MV->rotate(0, vec3(0.0f, 0.0f, 1.0f));
-				MV->scale(vec3(1.5f, 1.5f, 1.5f));
-				glUniformMatrix4fv(prog->getUniform("MV"), 1, GL_FALSE, glm::value_ptr(MV->topMatrix()));
-				sphere->draw(prog);
-
-		//////////////////////////////////////////////////////////////////////////
-
-		// Body Bottom
-				MV->pushMatrix();
-					MV->translate(vec3(0.0f, -2.0f, 0.0f));
-					MV->rotate(0, vec3(0.0f, 0.0f, 1.0f));
-					MV->scale(vec3(1.5f, 1.5f, 1.5f));
-					glUniformMatrix4fv(prog->getUniform("MV"), 1, GL_FALSE, glm::value_ptr(MV->topMatrix()));
-					sphere->draw(prog);
-
-		//////////////////////////////////////////////////////////////////////////
-
-		// Head
-				MV->popMatrix();
-				MV->pushMatrix();
-					MV->translate(vec3(0.0f, 1.5f, 0.0f));
-					MV->rotate(0, vec3(0.0f, 0.0f, 1.0f));
-					MV->scale(vec3(0.75f, 0.75f, 0.75f));
-					glUniformMatrix4fv(prog->getUniform("MV"), 1, GL_FALSE, glm::value_ptr(MV->topMatrix()));
-					sphere->draw(prog);
-
-		//////////////////////////////////////////////////////////////////////////
-	
-		// Hat Base
-		glBindVertexArray(VertexArrayID);
-					MV->pushMatrix();
-						MV->translate(vec3(0.0f, 0.5f, 0.0f));
-						MV->rotate(0, vec3(1.0f, 0.0f, 0.0f));
-						MV->scale(vec3(2.0f, 0.75f, 2.0f));
-						glUniformMatrix4fv(prog->getUniform("MV"), 1, GL_FALSE, glm::value_ptr(MV->topMatrix()));
-						glDrawElements(GL_TRIANGLES, NUM_OF_TRIANGLES * NUM_OF_LEVELS * 6, GL_UNSIGNED_INT, nullptr);
-
-		//////////////////////////////////////////////////////////////////////////
-
-		// Hat Top
-		glBindVertexArray(VertexArrayID);
-						MV->pushMatrix();
-							MV->translate(vec3(0.0f, 0.0f, 0.0f));
-							MV->rotate(0, vec3(1.0f, 0.0f, 0.0f));
-							MV->scale(vec3(0.5f, 2.5f, 0.5f));
-							glUniformMatrix4fv(prog->getUniform("MV"), 1, GL_FALSE, glm::value_ptr(MV->topMatrix()));
-							glDrawElements(GL_TRIANGLES, NUM_OF_TRIANGLES * NUM_OF_LEVELS * 6, GL_UNSIGNED_INT, nullptr);
-						MV->popMatrix();
-
-		//////////////////////////////////////////////////////////////////////////
-
-		// Arm Left
-					MV->popMatrix();
-				MV->popMatrix();
-				MV->pushMatrix();
-					MV->translate(vec3(-1.0f, 0.5f, 0.0f));
-					MV->rotate(arm_rotate, vec3(0.0f, 0.0f, 1.0f));
-					MV->scale(vec3(0.5f, 0.5f, 0.5f));
-					glUniformMatrix4fv(prog->getUniform("MV"), 1, GL_FALSE, glm::value_ptr(MV->topMatrix()));
-					sphere->draw(prog);
-					MV->pushMatrix();
-						MV->translate(vec3(-1.0f, 0.0f, 0.0f));
-						MV->rotate(0, vec3(0.0f, 0.0f, 1.0f));
-						MV->scale(vec3(1.0f, 0.75f, 0.75f));
-						glUniformMatrix4fv(prog->getUniform("MV"), 1, GL_FALSE, glm::value_ptr(MV->topMatrix()));
-						sphere->draw(prog);
-						MV->pushMatrix();
-							MV->translate(vec3(-1.0f, 0.0f, 0.0f));
-							MV->rotate(0, vec3(0.0f, 0.0f, 1.0f));
-							MV->scale(vec3(1.0f, 0.75f, 0.75f));
-							glUniformMatrix4fv(prog->getUniform("MV"), 1, GL_FALSE, glm::value_ptr(MV->topMatrix()));
-							sphere->draw(prog);
-						MV->popMatrix();
-					MV->popMatrix();
-				MV->popMatrix();
-		//////////////////////////////////////////////////////////////////////////
-
-		// Arm Right
-				MV->pushMatrix();
-				MV->translate(vec3(1.0f, 0.5f, 0.0f));
-				MV->rotate(-arm_rotate, vec3(0.0f, 0.0f, 1.0f));
-				MV->scale(vec3(0.5f, 0.5f, 0.5f));
-				glUniformMatrix4fv(prog->getUniform("MV"), 1, GL_FALSE, glm::value_ptr(MV->topMatrix()));
-				sphere->draw(prog);
-				MV->pushMatrix();
-					MV->translate(vec3(1.0f, 0.0f, 0.0f));
-					MV->rotate(0, vec3(0.0f, 0.0f, 1.0f));
-					MV->scale(vec3(1.0f, 0.75f, 0.75f));
-					glUniformMatrix4fv(prog->getUniform("MV"), 1, GL_FALSE, glm::value_ptr(MV->topMatrix()));
-					sphere->draw(prog);
-					MV->pushMatrix();
-						MV->translate(vec3(1.0f, 0.0f, 0.0f));
-						MV->rotate(0, vec3(0.0f, 0.0f, 1.0f));
-						MV->scale(vec3(1.0f, 0.75f, 0.75f));
-						glUniformMatrix4fv(prog->getUniform("MV"), 1, GL_FALSE, glm::value_ptr(MV->topMatrix()));
-						sphere->draw(prog);
-					MV->popMatrix();
-				MV->popMatrix();
-			MV->popMatrix();
-		MV->popMatrix();
+		snowman1 = new Snowman(5, 10, 5, 0, terrain, prog, sphere, VertexArrayID, VertexBufferID, IndexBufferID, resourceDirectory);
+		snowman2 = new Snowman(20, 10, 50, 1, terrain, prog, sphere, VertexArrayID, VertexBufferID, IndexBufferID, resourceDirectory);
+		snowman3 = new Snowman(50, 10, 20, 2, terrain, prog, sphere, VertexArrayID, VertexBufferID, IndexBufferID, resourceDirectory);
+		snowman4 = new Snowman(100, 10, 100, 3, terrain, prog, sphere, VertexArrayID, VertexBufferID, IndexBufferID, resourceDirectory);
+		snowman5 = new Snowman(200, 10, 70, 0, terrain, prog, sphere, VertexArrayID, VertexBufferID, IndexBufferID, resourceDirectory);
+		snowman6 = new Snowman(100, 10, 100, 1, terrain, prog, sphere, VertexArrayID, VertexBufferID, IndexBufferID, resourceDirectory);
+		snowman7 = new Snowman(30, 10, 30, 2, terrain, prog, sphere, VertexArrayID, VertexBufferID, IndexBufferID, resourceDirectory);
+		snowman8 = new Snowman(100, 10, 230, 3, terrain, prog, sphere, VertexArrayID, VertexBufferID, IndexBufferID, resourceDirectory);
+		snowman9 = new Snowman(0, 10, 0, 3, terrain, prog, sphere, VertexArrayID, VertexBufferID, IndexBufferID, resourceDirectory);
+		snowman10 = new Snowman(200, 10, 100, 3, terrain, prog, sphere, VertexArrayID, VertexBufferID, IndexBufferID, resourceDirectory);
 	}
 
 	void render()
@@ -713,30 +449,27 @@ public:
 		glUniformMatrix4fv(prog->getUniform("view"), 1, GL_FALSE, value_ptr(view));
 
 		//////////////////////////////////////////////////////////////////////////
-		playerPositionX += 0.1;
-		playerPositionZ += 0.1;
+		snowman1->move();
+		snowman2->move();
+		snowman3->move();
+		snowman4->move();
+		snowman5->move();
+		snowman6->move();
+		snowman7->move();
+		snowman8->move();
+		snowman9->move();
+		snowman10->move();
 
-		playerPositionY += fallSpeed;
-		float terrainHeight = terrain->getHeight(playerPositionX, playerPositionZ);
-
-		if (playerPositionY < terrainHeight)
-		{
-			playerPositionY = terrainHeight;
-			fallSpeed = 0.0f;
-		}
-		if (playerPositionY > terrainHeight)
-		{
-			fallSpeed -= gravity;
-			fallSpeed = min(fallSpeed, 0.1f);
-		}
-
-		drawSnowman(playerPositionX, playerPositionY, playerPositionZ, 1);
-
-
-		drawSnowman(5, terrain->getHeight(5, 5), 5, 0);
-		drawSnowman(20, terrain->getHeight(20, 50), 50, 1);
-		drawSnowman(50, terrain->getHeight(50, 20), 20, 2);
-		drawSnowman(100, terrain->getHeight(100, 100), 100, 3);
+		snowman1->draw();
+		snowman2->draw();
+		snowman3->draw();
+		snowman4->draw();
+		snowman5->draw();
+		snowman6->draw();
+		snowman7->draw();
+		snowman8->draw();
+		snowman9->draw();
+		snowman10->draw();
 	}
 };
 
@@ -764,8 +497,7 @@ int main(int argc, char **argv)
 	// may need to initialize or set up different data and state
 
 	application->init(resourceDir);
-	application->initQuad();
-	application->initSnowman(resourceDir);
+	application->initQuad(resourceDir);
 
 	// Loop until the user closes the window.
 	while (!glfwWindowShouldClose(windowManager->getHandle()))
