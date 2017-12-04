@@ -22,16 +22,7 @@ using namespace glm;
 
 int textureIndex = 0;
 
-Snowman * snowman1;
-Snowman * snowman2;
-Snowman * snowman3;
-Snowman * snowman4;
-Snowman * snowman5;
-Snowman * snowman6;
-Snowman * snowman7;
-Snowman * snowman8;
-Snowman * snowman9;
-Snowman * snowman10;
+vector<Snowman*> snowmen;
 
 class Application : public EventCallbacks
 {
@@ -74,8 +65,8 @@ public:
 
 	GLuint IndexBufferID;
 	//////////////////////////////////////////////////////////////////////////
-	vec3 cameraPosition = { 0.0f, 10.0f, 0.0f };
-	vec3 cameraOffset = { 0.0f, 10.0f, 0.0f };
+	vec3 cameraPosition = { 0.0f, 100.0f, 0.0f };
+	vec3 cameraOffset = { 0.0f, 100.0f, 0.0f };
 	vec3 lookAtPosition = { 0.0f, 0.0f, 0.0f };
 
 	float light_x_position = 0.0f;
@@ -85,9 +76,12 @@ public:
 
 	float oldX = 0.0f;
 	float oldY = 0.0f;
-	float speed = 2.0f;
+	float speed = 5.0f;
 
 	float terrainRotation = 0.0f;
+
+	bool hasEntities = false;
+	bool hasRotation = false;
 	//////////////////////////////////////////////////////////////////////////
 
 	void keyCallback(GLFWwindow *window, int key, int scancode, int action, int mods)
@@ -127,26 +121,52 @@ public:
 		{
 			terrain->renderSolidTerrain();
 		}
+		else if (key == GLFW_KEY_TAB && action == GLFW_PRESS)
+		{
+			if (hasEntities)
+			{
+				hasEntities = false;
+			}
+			else if (!hasEntities)
+			{
+				hasEntities = true;
+				hasRotation = false;
+			}
+		}
+		else if (key == GLFW_KEY_X && action == GLFW_PRESS)
+		{
+			if (hasRotation)
+			{
+				hasRotation = false;
+			}
+			else if (!hasRotation)
+			{
+				hasRotation = true;
+				hasEntities = false;
+			}
+		}
 		else if (key == GLFW_KEY_ENTER && action == GLFW_PRESS)
 		{
 			terrain->getNewTerrain();
 		}
-		else if (key == GLFW_KEY_SPACE)
+		else if (key == GLFW_KEY_SPACE && action == GLFW_PRESS)
 		{
 			light_x_position = 0.0f;
 
-			cameraPosition = { 0.0f, 10.0f, 0.0f };
-			cameraOffset = { 0.0f, 10.0f, 0.0f };
+			cameraPosition = { 0.0f, 100.0f, 0.0f };
+			cameraOffset = { 0.0f, 100.0f, 0.0f };
 			lookAtPosition = { 0.0f, 0.0f, 0.0f };
 
+			hasRotation = false;
+			hasEntities = false;
 		}
 		else if (key == GLFW_KEY_Q) {
 			// move light position along x axis
-			light_x_position -= 0.1f;
+			light_x_position -= 1.0f;
 		}
 		else if (key == GLFW_KEY_E) {
 			// move light position along x axis
-			light_x_position += 0.1f;
+			light_x_position += 1.0f;
 		}
 	}
 
@@ -333,7 +353,7 @@ public:
 		double posX = 0;
 		double posY = 0;
 
-		double scale = 15.0;
+		double scale = 25.0;
 		double scaleX = 25.0;
 		double scaleY = 25.0;
 
@@ -369,10 +389,22 @@ public:
 
 	void drawGround()
 	{
-		terrainRotation = glfwGetTime() / 10.0f;
+		if (hasRotation)
+		{
+			terrainRotation += 0.01f;
+
+			if (terrainRotation > 10000.0f)
+			{
+				terrainRotation = 0.0f;
+			}
+		}
+		else
+		{
+			terrainRotation = 0.0f;
+		}
 		auto MV = std::make_shared<MatrixStack>();
 		MV->pushMatrix();
-			//MV->rotate(terrainRotation, vec3(0, 1, 0));
+			MV->rotate(terrainRotation, vec3(0, 1, 0));
 			MV->translate(vec3(-terrain->SIZE / 2, 0, -terrain->SIZE / 2));
 			glUniformMatrix4fv(groundProg->getUniform("MV"), 1, GL_FALSE, value_ptr(MV->topMatrix()));
 			if (textureIndex == 0)
@@ -398,16 +430,29 @@ public:
 
 	void createEntities(const std::string& resourceDirectory)
 	{
-		snowman1 = new Snowman(5, 10, 5, 0, terrain, prog, sphere, VertexArrayID, VertexBufferID, IndexBufferID, resourceDirectory);
-		snowman2 = new Snowman(20, 10, 50, 1, terrain, prog, sphere, VertexArrayID, VertexBufferID, IndexBufferID, resourceDirectory);
-		snowman3 = new Snowman(50, 10, 20, 2, terrain, prog, sphere, VertexArrayID, VertexBufferID, IndexBufferID, resourceDirectory);
-		snowman4 = new Snowman(100, 10, 100, 3, terrain, prog, sphere, VertexArrayID, VertexBufferID, IndexBufferID, resourceDirectory);
-		snowman5 = new Snowman(200, 10, 70, 0, terrain, prog, sphere, VertexArrayID, VertexBufferID, IndexBufferID, resourceDirectory);
-		snowman6 = new Snowman(100, 10, 100, 1, terrain, prog, sphere, VertexArrayID, VertexBufferID, IndexBufferID, resourceDirectory);
-		snowman7 = new Snowman(30, 10, 30, 2, terrain, prog, sphere, VertexArrayID, VertexBufferID, IndexBufferID, resourceDirectory);
-		snowman8 = new Snowman(100, 10, 230, 3, terrain, prog, sphere, VertexArrayID, VertexBufferID, IndexBufferID, resourceDirectory);
-		snowman9 = new Snowman(0, 10, 0, 3, terrain, prog, sphere, VertexArrayID, VertexBufferID, IndexBufferID, resourceDirectory);
-		snowman10 = new Snowman(200, 10, 100, 3, terrain, prog, sphere, VertexArrayID, VertexBufferID, IndexBufferID, resourceDirectory);
+		snowmen.push_back(new Snowman(5, 10, 5, 0, terrain, prog, sphere, VertexArrayID, VertexBufferID, IndexBufferID, resourceDirectory));
+		snowmen.push_back(new Snowman(5, 10, 5, 0, terrain, prog, sphere, VertexArrayID, VertexBufferID, IndexBufferID, resourceDirectory));
+		snowmen.push_back(new Snowman(20, 10, 50, 1, terrain, prog, sphere, VertexArrayID, VertexBufferID, IndexBufferID, resourceDirectory));
+		snowmen.push_back(new Snowman(50, 10, -20, 2, terrain, prog, sphere, VertexArrayID, VertexBufferID, IndexBufferID, resourceDirectory));
+		snowmen.push_back(new Snowman(100, 10, -100, 3, terrain, prog, sphere, VertexArrayID, VertexBufferID, IndexBufferID, resourceDirectory));
+		snowmen.push_back(new Snowman(-200, 10, 70, 0, terrain, prog, sphere, VertexArrayID, VertexBufferID, IndexBufferID, resourceDirectory));
+		snowmen.push_back(new Snowman(100, 10, 100, 1, terrain, prog, sphere, VertexArrayID, VertexBufferID, IndexBufferID, resourceDirectory));
+		snowmen.push_back(new Snowman(30, 10, 30, 2, terrain, prog, sphere, VertexArrayID, VertexBufferID, IndexBufferID, resourceDirectory));
+		snowmen.push_back(new Snowman(100, 10, -230, 3, terrain, prog, sphere, VertexArrayID, VertexBufferID, IndexBufferID, resourceDirectory));
+		snowmen.push_back(new Snowman(0, 10, 0, 3, terrain, prog, sphere, VertexArrayID, VertexBufferID, IndexBufferID, resourceDirectory));
+		snowmen.push_back(new Snowman(-200, 10, 100, 3, terrain, prog, sphere, VertexArrayID, VertexBufferID, IndexBufferID, resourceDirectory));
+	}
+
+	void renderEntities()
+	{
+		if (hasEntities)
+		{
+			for (int i = 0; i < snowmen.size(); i++)
+			{
+				snowmen.at(i)->move();
+				snowmen.at(i)->draw();
+			}
+		}
 	}
 
 	void render()
@@ -449,27 +494,7 @@ public:
 		glUniformMatrix4fv(prog->getUniform("view"), 1, GL_FALSE, value_ptr(view));
 
 		//////////////////////////////////////////////////////////////////////////
-		snowman1->move();
-		snowman2->move();
-		snowman3->move();
-		snowman4->move();
-		snowman5->move();
-		snowman6->move();
-		snowman7->move();
-		snowman8->move();
-		snowman9->move();
-		snowman10->move();
-
-		snowman1->draw();
-		snowman2->draw();
-		snowman3->draw();
-		snowman4->draw();
-		snowman5->draw();
-		snowman6->draw();
-		snowman7->draw();
-		snowman8->draw();
-		snowman9->draw();
-		snowman10->draw();
+		renderEntities();
 	}
 };
 

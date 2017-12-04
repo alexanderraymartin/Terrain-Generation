@@ -34,8 +34,8 @@ Snowman::Snowman(float _playerPositionX, float _playerPositionY, float _playerPo
 	VertexBufferID = _VertexBufferID;
 	IndexBufferID = _IndexBufferID;
 
-	speedX = rand() % 10 * 0.1f;
-	speedZ = rand() % 10 * 0.1f;
+	speedX = (rand() % 10 + 1) * 0.1f;
+	speedZ = (rand() % 10 + 1) * 0.1f;
 
 	initSnowman(resourceDirectory);
 }

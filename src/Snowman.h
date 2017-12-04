@@ -42,7 +42,7 @@ public:
 	float speedZ;
 	float arm_rotate = 45.0f;
 	float fallSpeed = 0.0f;
-	float gravity = 0.01f;
+	float gravity = 0.02f;
 };
 
 #endif

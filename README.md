@@ -2,10 +2,12 @@ Alex Martin
 
 Camera: Left Mouse Button  
 Movement: W A S D  
-Light position: Q E  
+Light Position: Q E  
 Generate New Terrain: Enter  
 Render Terrain: R  
 Change Texture: T  
+Toggle Rotation: X  
+Toggle Entities: Tab  
 Reset: Spacebar  
   
 References:  
